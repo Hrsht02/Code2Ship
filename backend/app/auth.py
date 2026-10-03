@@ -33,6 +33,8 @@ def get_current_user(cod2ship_session: str | None = Cookie(default=None), db: Se
 @router.get("/google/login")
 def google_login():
     if not settings.google_client_id or not settings.google_client_secret:
+        if settings.is_production:
+            raise HTTPException(503, "Google OAuth is not configured")
         return RedirectResponse(settings.frontend_url + "/dashboard")
     state = secrets.token_urlsafe(32)
     params = httpx.QueryParams({
@@ -45,7 +47,7 @@ def google_login():
         "prompt": "select_account",
     })
     response = RedirectResponse("https://accounts.google.com/o/oauth2/v2/auth?" + str(params))
-    response.set_cookie("oauth_state", state, httponly=True, secure=False, samesite="lax", max_age=600)
+    response.set_cookie("oauth_state", state, httponly=True, secure=settings.cookie_secure, samesite="lax", max_age=600, path="/")
     return response
 
 @router.get("/google/callback")
@@ -61,10 +63,7 @@ async def google_callback(code: str, state: str, oauth_state: str | None = Cooki
         })
         token_response.raise_for_status()
         access_token = token_response.json()["access_token"]
-        profile_response = await client.get(
-            "https://openidconnect.googleapis.com/v1/userinfo",
-            headers={"Authorization": "Bearer " + access_token},
-        )
+        profile_response = await client.get("https://openidconnect.googleapis.com/v1/userinfo", headers={"Authorization": "Bearer " + access_token})
         profile_response.raise_for_status()
         profile = profile_response.json()
 
@@ -92,21 +91,19 @@ async def google_callback(code: str, state: str, oauth_state: str | None = Cooki
     db.commit()
 
     redirect = RedirectResponse(settings.frontend_url + "/dashboard")
-    redirect.set_cookie("cod2ship_session", issue_token(user.id), httponly=True, secure=False, samesite="lax", max_age=604800)
-    redirect.delete_cookie("oauth_state")
+    redirect.set_cookie("cod2ship_session", issue_token(user.id), httponly=True, secure=settings.cookie_secure, samesite=settings.cookie_samesite, max_age=604800, path="/")
+    redirect.delete_cookie("oauth_state", path="/")
     return redirect
 
 @router.get("/me")
 def me(user: User = Depends(get_current_user)):
     profile = user.student_profile
-    return {
-        "id": user.id, "name": user.name, "email": user.email,
-        "profile_image": user.profile_image, "role": user.role, "status": user.status,
-        "registration_status": profile.registration_status if profile else "approved",
-    }
+    return {"id": user.id, "name": user.name, "email": user.email, "profile_image": user.profile_image,
+            "role": user.role, "status": user.status,
+            "registration_status": profile.registration_status if profile else "approved"}
 
 @router.post("/logout")
 def logout():
     response = Response(status_code=204)
-    response.delete_cookie("cod2ship_session")
+    response.delete_cookie("cod2ship_session", path="/")
     return response
