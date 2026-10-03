@@ -1,10 +1,14 @@
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
+from .auth import router as auth_router, get_current_user
 from .config import settings
+from .database import Base, engine, get_db
+from .models import User
 
-app = FastAPI(title="Cod2Ship API", version="0.1.0")
-
+Base.metadata.create_all(bind=engine)
+app = FastAPI(title="Cod2Ship API", version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
@@ -12,6 +16,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(auth_router)
 
 @app.get("/health")
 def health():
@@ -23,25 +28,13 @@ def registration_form():
         return RedirectResponse(settings.google_form_url)
     return {"configured": False, "message": "Registration form is not configured yet."}
 
-@app.get("/auth/google/login")
-def google_login():
-    # OAuth wiring is intentionally configuration-driven. Add the Google OAuth
-    # provider once GOOGLE_CLIENT_ID/SECRET are configured in deployment.
-    if not settings.google_client_id:
-        return RedirectResponse(f"{settings.frontend_url}/dashboard")
-    from urllib.parse import urlencode
-    params = urlencode({
-        "client_id": settings.google_client_id,
-        "redirect_uri": settings.google_redirect_uri,
-        "response_type": "code",
-        "scope": "openid email profile",
-        "access_type": "offline",
-        "prompt": "select_account",
-    })
-    return RedirectResponse("https://accounts.google.com/o/oauth2/v2/auth?" + params)
-
-@app.get("/auth/google/callback")
-def google_callback(code: str):
-    # Token exchange/user creation is the next auth implementation step.
-    # Never accept a role from the browser; roles will be server controlled.
-    return RedirectResponse(f"{settings.frontend_url}/dashboard")
+@app.get("/admin/users")
+def admin_users(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if user.role != "admin":
+        raise HTTPException(403, "Admin access required")
+    users = db.query(User).order_by(User.created_at.desc()).all()
+    return [
+        {"id": u.id, "name": u.name, "email": u.email, "role": u.role, "status": u.status,
+         "registration_status": u.student_profile.registration_status if u.student_profile else "approved"}
+        for u in users
+    ]
