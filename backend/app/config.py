@@ -9,11 +9,18 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
     secret_key: str = "change-me"
     admin_emails: str = ""
+    cookie_secure: bool = False
+    cookie_samesite: str = "lax"
+    environment: str = "development"
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
     @property
     def admin_email_set(self) -> set[str]:
         return {email.strip().lower() for email in self.admin_emails.split(",") if email.strip()}
+
+    @property
+    def is_production(self) -> bool:
+        return self.environment.lower() == "production"
 
 settings = Settings()
