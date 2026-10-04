@@ -99,6 +99,11 @@ def admin_update_user(user_id:int, data:dict, user:User=Depends(get_current_user
     db.commit()
     return user_payload(target)
 
+@app.get("/api/admin/courses")
+def admin_courses(user:User=Depends(get_current_user),db:Session=Depends(get_db)):
+    role_required(user,"admin")
+    return [course_payload(c) for c in db.query(Course).order_by(Course.title).all()]
+
 @app.post("/api/admin/courses")
 def admin_create_course(data:dict,user:User=Depends(get_current_user),db:Session=Depends(get_db)):
     role_required(user,"admin")
