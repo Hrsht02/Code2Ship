@@ -12,6 +12,8 @@ class Settings(BaseSettings):
     cookie_secure: bool = False
     cookie_samesite: str = "lax"
     environment: str = "development"
+    code_executor_url: str = ""
+    code_executor_key: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", case_sensitive=False)
 
