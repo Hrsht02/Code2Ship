@@ -10,7 +10,7 @@ function Logo() {
 
 function Landing() {
   return <div className="site">
-    <nav className="nav container"><Logo /><div className="nav-links"><a href="#learn">What you'll learn</a><a href="#how">How it works</a><Link className="nav-login" to="/login">Login</Link></div></nav>
+    <nav className="nav container"><Logo /><div className="nav-links"><a href="#learn">What you'll learn</a><a href="#how">How it works</a><a className="nav-login" href={API_URL+"/config/registration-form"}>Sign up</a><Link className="nav-login" to="/login">Login</Link></div></nav>
     <main>
       <section className="hero container"><div className="hero-copy">
         <div className="eyebrow"><span className="pulse" /> Hands-on learning for the next generation</div>
@@ -31,7 +31,7 @@ function Landing() {
 }
 
 function Login() {
-  return <div className="auth-page"><div className="auth-card"><Logo/><div className="auth-icon"><Code2 size={25}/></div><h1>Welcome to Cod2Ship</h1><p>Learn • Code • Build</p><button className="google-button" onClick={()=>window.location.href=API_URL+"/auth/google/login"}><span className="google-g">G</span> Continue with Google</button><Link className="back-link" to="/">← Back to Cod2Ship</Link></div></div>;
+  return <div className="auth-page"><div className="auth-card"><Logo/><div className="auth-icon"><Code2 size={25}/></div><h1>Welcome to Cod2Ship</h1><p>Learn • Code • Build</p><button className="google-button" onClick={()=>window.location.href=API_URL+"/auth/google/login"}><span className="google-g">G</span> Continue with Google</button><p className="auth-signup">New to Cod2Ship? <a href={API_URL+"/config/registration-form"}>Sign up as a student</a></p><Link className="back-link" to="/">← Back to Cod2Ship</Link></div></div>;
 }
 
 function Dashboard() {
