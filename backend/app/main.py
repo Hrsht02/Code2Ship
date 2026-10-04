@@ -107,6 +107,20 @@ def admin_create_course(data:dict,user:User=Depends(get_current_user),db:Session
     c=Course(title=data["title"],code=data["code"],description=data.get("description",""),level=data.get("level","Beginner"),teacher_id=data.get("teacher_id"))
     db.add(c); db.commit(); db.refresh(c); return course_payload(c)
 
+@app.patch("/api/admin/courses/{course_id}")
+def admin_update_course(course_id:int,data:dict,user:User=Depends(get_current_user),db:Session=Depends(get_db)):
+    role_required(user,"admin")
+    c=db.get(Course,course_id)
+    if not c: raise HTTPException(404,"Course not found")
+    for key in ("title","description","level","status"):
+        if key in data: setattr(c,key,data[key])
+    if "teacher_id" in data:
+        teacher_id=data["teacher_id"]
+        teacher=db.get(User,int(teacher_id)) if teacher_id else None
+        if teacher_id and (not teacher or teacher.role!="teacher"): raise HTTPException(400,"Selected user is not a teacher")
+        c.teacher_id=teacher_id
+    db.commit();return course_payload(c)
+
 @app.get("/api/courses/{course_id}")
 def get_course(course_id:int,user:User=Depends(get_current_user),db:Session=Depends(get_db)):
     c=db.get(Course,course_id)
