@@ -40,40 +40,6 @@ def registration_form():
         return RedirectResponse(settings.google_form_url)
     return {"configured":False,"message":"Registration form is not configured yet. Ask an admin to configure GOOGLE_FORM_URL."}
 
-@app.post("/api/code/run")
-async def run_code(data: dict, user: User = Depends(get_current_user)):
-    role_required(user, "student", "teacher", "admin")
-    language = str(data.get("language", "")).lower()
-    code = str(data.get("code", ""))
-    stdin = str(data.get("stdin", ""))
-    if language not in {"python", "cpp", "java", "javascript"}:
-        raise HTTPException(400, "Unsupported language")
-    if not code.strip():
-        raise HTTPException(400, "Code cannot be empty")
-    if len(code) > 50000 or len(stdin) > 10000:
-        raise HTTPException(413, "Code or input is too large")
-    if not settings.code_executor_url:
-        raise HTTPException(503, "Code runner is not configured")
-    import httpx
-    headers = {"X-Executor-Key": settings.code_executor_key} if settings.code_executor_key else {}
-    try:
-        async with httpx.AsyncClient(timeout=12) as client:
-            response = await client.post(
-                settings.code_executor_url.rstrip("/") + "/run",
-                json={"language": language, "code": code, "stdin": stdin},
-                headers=headers,
-            )
-        if response.status_code >= 500:
-            raise HTTPException(503, "Code runner unavailable")
-        if response.status_code >= 400:
-            detail = response.json().get("detail", "Code execution failed")
-            raise HTTPException(response.status_code, detail)
-        return response.json()
-    except httpx.TimeoutException:
-        raise HTTPException(504, "Execution timed out")
-    except httpx.HTTPError:
-        raise HTTPException(503, "Code runner unavailable")
-
 @app.get("/api/bootstrap")
 def bootstrap(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if user.role == "admin":
