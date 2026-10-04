@@ -32,10 +32,6 @@ services:
         value: "none"
       - key: ENVIRONMENT
         value: "production"
-      - key: CODE_EXECUTOR_URL
-        sync: false
-      - key: CODE_EXECUTOR_KEY
-        sync: false
 
 databases:
   - name: cod2ship-db
