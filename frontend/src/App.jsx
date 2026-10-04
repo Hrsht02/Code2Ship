@@ -1,5 +1,5 @@
 import { Link, Route, Routes, useNavigate } from "react-router-dom";
-import { ArrowRight, BookOpen, BrainCircuit, Code2, GraduationCap, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, ClipboardList, Plus, CheckCircle2, Clock3, FileText, Megaphone, X, Play, RotateCcw, Terminal } from "lucide-react";
+import { ArrowRight, BookOpen, BrainCircuit, Code2, GraduationCap, LayoutDashboard, LogOut, Menu, ShieldCheck, Users, ClipboardList, Plus, CheckCircle2, Clock3, FileText, Megaphone, X, Play, RotateCcw, Terminal, Rocket } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const API_URL=import.meta.env.VITE_API_URL||"http://localhost:8000";
