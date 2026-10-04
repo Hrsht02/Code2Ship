@@ -196,6 +196,24 @@ def create_announcement(data:dict,user:User=Depends(get_current_user),db:Session
     a=Announcement(title=data.get("title","Announcement"),body=data.get("body",""),audience=data.get("audience","all"),created_by=user.id)
     db.add(a);db.commit();db.refresh(a);return {"id":a.id,"title":a.title,"body":a.body,"audience":a.audience}
 
+@app.post("/api/student/join-class")
+def student_join_class(data:dict,user:User=Depends(get_current_user),db:Session=Depends(get_db)):
+    role_required(user,"student")
+    if user.status != "active": raise HTTPException(403,"Your account is not active")
+    code=str(data.get("code","")).strip().upper()
+    if not code: raise HTTPException(400,"Enter a class code")
+    course=db.query(Course).filter(Course.code==code,Course.status=="published").first()
+    if not course: raise HTTPException(404,"Class not found. Check the class code.")
+    existing=db.query(Enrollment).filter_by(student_id=user.id,course_id=course.id).first()
+    if existing:
+        return {"ok":True,"already_joined":True,"course":course_payload(course,existing.progress)}
+    enrollment=Enrollment(student_id=user.id,course_id=course.id,status="active")
+    db.add(enrollment)
+    db.add(ActivityLog(user_id=user.id,event="student_joined_class"))
+    db.commit()
+    db.refresh(enrollment)
+    return {"ok":True,"already_joined":False,"course":course_payload(course,0)}
+
 @app.post("/api/admin/enrollments")
 def enroll_student(data:dict,user:User=Depends(get_current_user),db:Session=Depends(get_db)):
     role_required(user,"admin")
